@@ -1,15 +1,14 @@
+name: Sync Upstream Home Manager
 
-name: Sync home-manager upstream
-
-# 权限：需要写权限才能 push 回你的 fork
+# 必须的权限，否则无法推送回你的 Fork
 permissions:
   contents: write
 
 on:
-  # 定时：每天 UTC 0 点（可改）
+  # 每天 UTC 0 点定时同步
   schedule:
     - cron: '0 0 * * *'
-  # 允许手动点按钮触发
+  # 允许手动触发测试
   workflow_dispatch:
 
 jobs:
@@ -20,9 +19,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: master  # 你的分支名
+          ref: master # 你的默认分支
 
-      - name: Configure Git identity
+      - name: Configure Git
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
