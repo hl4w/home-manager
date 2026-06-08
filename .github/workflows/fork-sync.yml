@@ -1,0 +1,44 @@
+name: Sync home-manager Shell Upstream
+
+permissions:
+  contents: write
+
+on:
+  schedule:
+    - cron: '0 2 * * 6'   # 每周六凌晨2点（UTC）
+  workflow_dispatch:      # 允许手动触发
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout your fork
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Configure Git identity
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream remote (if not exists)
+        run: |
+          git remote add upstream https://github.com/nix-community/home-manager.git || true
+
+      - name: Fetch all remotes, tags and prune
+        run: |
+          git fetch --all --tags --prune
+
+      - name: Sync master branch (hard reset)
+        run: |
+          git checkout master
+          git reset --hard upstream/master
+          git push  origin master
+
+      - name: Sync release-25.11 branch (hard reset)
+        run: |
+          git checkout --track origin/release-25.11 || git checkout release-25.11
+          git reset --hard upstream/release-25.11
+          git push  origin release-25.11
