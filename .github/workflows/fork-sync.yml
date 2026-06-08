@@ -34,11 +34,11 @@ jobs:
       - name: Sync master branch (hard reset)
         run: |
           git checkout master
-          git reset --hard upstream/master
+          git merge upstream/master --no-edit
           git push  origin master
 
       - name: Sync release-25.11 branch (hard reset)
         run: |
           git checkout --track origin/release-25.11 || git checkout release-25.11
-          git reset --hard upstream/release-25.11
+          git merge upstream/release-25.11 --no-edit
           git push  origin release-25.11
