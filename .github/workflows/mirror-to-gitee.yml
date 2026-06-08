@@ -1,0 +1,35 @@
+name: Mirror to Gitee
+on:
+  push:
+    branches: [ 'master', 'release-25.11', 'update/release-25.11' ]
+  schedule:
+    - cron: '0 4 * * 1' 
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          # 关键：拉取所有分支和标签，而不只是当前分支
+          fetch-tags: true
+
+      - name: Sync specified branches to Gitee
+        env:
+          GITEE_USER: ${{ secrets.GITEE_USER }}
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+        run: |
+          git config --global user.name "${GITEE_USER}"
+          git config --global user.email "${GITEE_USER}@users.noreply.gitee.com"
+
+          git remote add gitee https://${GITEE_USER}:${GITEE_TOKEN}@gitee.com/hl4w/home-manager.git
+
+          # 拉取所有远程分支到本地
+          git fetch --all
+
+          # 推送指定分支（这里用 refs/remotes/origin/xxx 直接推远程分支）
+          git push -f gitee refs/remotes/origin/master:refs/heads/master \
+                       refs/remotes/origin/release-25.11:refs/heads/release-25.11 \
+                       refs/remotes/origin/update/release-25.11:refs/heads/update/release-25.11
