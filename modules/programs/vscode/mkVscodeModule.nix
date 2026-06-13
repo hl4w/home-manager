@@ -22,6 +22,7 @@ let
     optionalString
     types
     ;
+  inherit (lib.hm.strings) isPathLike;
 
   moduleName = lib.concatStringsSep "." modulePath;
 
@@ -60,42 +61,27 @@ let
 
   mergedUserSettings =
     userSettings: enableUpdateCheck: enableExtensionUpdateCheck:
-    userSettings
-    // lib.optionalAttrs (enableUpdateCheck == false) {
-      "update.mode" = "none";
-    }
-    // lib.optionalAttrs (enableExtensionUpdateCheck == false) {
-      "extensions.autoCheckUpdates" = false;
-    };
-
-  isPath = p: builtins.isPath p || lib.isStorePath p;
-
-  transformMcpServerForVscode =
-    name: server:
-    let
-      # Remove the disabled field from the server config
-      cleanServer = lib.filterAttrs (n: _v: n != "disabled") server;
-    in
-    {
-      inherit name;
-      value = {
-        enabled = !(server.disabled or false);
+    if isPathLike userSettings then
+      userSettings
+    else
+      userSettings
+      // lib.optionalAttrs (enableUpdateCheck == false) {
+        "update.mode" = "none";
       }
-      // (
-        if server ? url then
-          {
-            type = "http";
-          }
-          // cleanServer
-        else if server ? command then
-          {
-            type = "stdio";
-          }
-          // cleanServer
-        else
-          { }
-      );
+      // lib.optionalAttrs (enableExtensionUpdateCheck == false) {
+        "extensions.autoCheckUpdates" = false;
+      };
+
+  transformMcpServerForVscode = name: server: {
+    inherit name;
+    value = lib.hm.mcp.transformMcpServer {
+      inherit server;
+      extraTransforms = [
+        lib.hm.mcp.addType
+        (lib.hm.mcp.wrapEnvFilesCommand { inherit pkgs name; })
+      ];
     };
+  };
 
   profileType = types.submodule {
     options = {
@@ -388,28 +374,26 @@ in
     home.file = lib.mkMerge (flatten [
       (mkIf (cfg.argvSettings != { }) {
         "${argvPath}".source =
-          if isPath cfg.argvSettings then
+          if isPathLike cfg.argvSettings then
             cfg.argvSettings
           else
             jsonFormat.generate "vscode-argv" cfg.argvSettings;
       })
 
       (mapAttrsToList (n: v: [
-        (mkIf ((mergedUserSettings v.userSettings v.enableUpdateCheck v.enableExtensionUpdateCheck) != { })
-          {
+        (
+          let
+            merged = mergedUserSettings v.userSettings v.enableUpdateCheck v.enableExtensionUpdateCheck;
+          in
+          mkIf (merged != { }) {
             "${configFilePath n}".source =
-              if isPath v.userSettings then
-                v.userSettings
-              else
-                jsonFormat.generate "vscode-user-settings" (
-                  mergedUserSettings v.userSettings v.enableUpdateCheck v.enableExtensionUpdateCheck
-                );
+              if isPathLike merged then merged else jsonFormat.generate "vscode-user-settings" merged;
           }
         )
 
         (mkIf (v.userTasks != { }) {
           "${tasksFilePath n}".source =
-            if isPath v.userTasks then v.userTasks else jsonFormat.generate "vscode-user-tasks" v.userTasks;
+            if isPathLike v.userTasks then v.userTasks else jsonFormat.generate "vscode-user-tasks" v.userTasks;
         })
 
         (mkIf
@@ -419,7 +403,7 @@ in
           )
           {
             "${mcpFilePath n}".source =
-              if isPath v.userMcp then
+              if isPathLike v.userMcp then
                 v.userMcp
               else
                 let
@@ -440,7 +424,7 @@ in
 
         (mkIf (v.keybindings != [ ]) {
           "${keybindingsFilePath n}".source =
-            if isPath v.keybindings then
+            if isPathLike v.keybindings then
               v.keybindings
             else
               jsonFormat.generate "vscode-keybindings" (map (lib.filterAttrs (_: v: v != null)) v.keybindings);
