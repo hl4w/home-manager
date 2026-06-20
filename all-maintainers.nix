@@ -119,6 +119,13 @@
     name = "Denis Kaynar";
     source = "home-manager";
   };
+  ErinaYip = {
+    email = "erinayip@outlook.com";
+    github = "ErinaYip";
+    githubId = 227132255;
+    name = "erina";
+    source = "home-manager";
+  };
   Eveeifyeve = {
     email = "eveeg1971@gmail.com";
     github = "Eveeifyeve";
@@ -522,14 +529,6 @@
     name = "David Chocholatý";
     source = "nixpkgs";
   };
-  adisbladis = {
-    email = "adisbladis@gmail.com";
-    github = "adisbladis";
-    githubId = 63286;
-    matrix = "@adis:blad.is";
-    name = "Adam Hose";
-    source = "nixpkgs";
-  };
   afresquet = {
     email = "alvarofresquet@gmail.com";
     github = "afresquet";
@@ -685,6 +684,13 @@
     ];
     name = "Filippo Berto";
     source = "nixpkgs";
+  };
+  bittner = {
+    email = "peter@painless.software";
+    github = "bittner";
+    githubId = 665072;
+    name = "Peter Bittner";
+    source = "home-manager";
   };
   bjpbakker = {
     email = "bart@thesoftwarecraft.com";
@@ -2270,6 +2276,13 @@
     githubId = 16734772;
     name = "Sumner Evans";
     source = "nixpkgs";
+  };
+  superflash41 = {
+    email = "saymon.nicho@pucp.edu.pe";
+    github = "superflash41";
+    githubId = 102434258;
+    name = "Saymon Nicho";
+    source = "home-manager";
   };
   surfaceflinger = {
     email = "nat@nekopon.pl";

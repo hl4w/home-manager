@@ -13,9 +13,6 @@
       mcpServers = {
         github = {
           url = "https://api.githubcopilot.com/mcp/";
-          env = {
-            url = "https://token.example/env";
-          };
         };
         filesystem = {
           command = "npx";
@@ -48,6 +45,13 @@
           ];
           env = {
             DATABASE_URL = "postgresql://user:pass@localhost:5432/db";
+            url = "https://token.example/env";
+          };
+        };
+        remote-server = {
+          url = "https://remote.example/mcp";
+          headers = {
+            "Authorization" = "Bearer token";
           };
         };
       };
@@ -62,5 +66,10 @@
     assertFileRegex home-files/.gemini/config/mcp_config.json '"filesystem"'
     assertFileRegex home-files/.gemini/config/mcp_config.json '"database"'
     assertFileNotRegex home-files/.gemini/config/mcp_config.json '"other-tmp"'
+    assertFileRegex home-files/.gemini/config/mcp_config.json '"remote-server"'
+    assertFileRegex home-files/.gemini/config/mcp_config.json '"serverUrl": "https://remote.example/mcp"'
+    assertFileRegex home-files/.gemini/config/mcp_config.json '"type": "http"'
+    assertFileNotRegex home-files/.gemini/config/mcp_config.json '"command": null'
+    assertFileNotRegex home-files/.gemini/config/mcp_config.json '"env": {}'
   '';
 }

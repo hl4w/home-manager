@@ -32,16 +32,33 @@ let
 
   transformMcpServer =
     server:
-    removeAttrs server [
-      "httpUrl"
-      "url"
-    ]
-    // lib.optionalAttrs (server ? httpUrl) {
-      serverUrl = server.httpUrl;
-    }
-    // lib.optionalAttrs (server ? url) {
-      serverUrl = server.url;
-    };
+    let
+      isRemote =
+        (server.httpUrl or null) != null
+        || (server.url or null) != null
+        || (server.serverUrl or null) != null;
+      cleaned =
+        if isRemote then
+          removeAttrs server [
+            "command"
+            "args"
+            "env"
+          ]
+        else
+          server;
+      transformed =
+        removeAttrs cleaned [
+          "httpUrl"
+          "url"
+        ]
+        // lib.optionalAttrs (server ? httpUrl) {
+          serverUrl = server.httpUrl;
+        }
+        // lib.optionalAttrs (server ? url) {
+          serverUrl = server.url;
+        };
+    in
+    lib.filterAttrs (_: v: v != null && v != [ ] && v != { }) transformed;
 
   transformMcpServers = lib.mapAttrs (_name: transformMcpServer);
 
@@ -356,13 +373,13 @@ in
 
         If an attribute set is used, the attribute name becomes the
         skill directory name, and the value is either:
-        - Inline content as a string (creates `~/.gemini/config/skills/<name>/SKILL.md`)
-        - A path to a file (creates `~/.gemini/config/skills/<name>/SKILL.md`)
-        - A path to a directory (symlinks `~/.gemini/config/skills/<name>/` to that directory)
+        - Inline content as a string (creates `~/.gemini/antigravity-cli/skills/<name>/SKILL.md`)
+        - A path to a file (creates `~/.gemini/antigravity-cli/skills/<name>/SKILL.md`)
+        - A path to a directory (symlinks `~/.gemini/antigravity-cli/skills/<name>/` to that directory)
 
         If a path is used, it is expected to contain one folder per
         skill name, each containing a {file}`SKILL.md`. The directory is
-        symlinked to {file}`~/.gemini/config/skills/`.
+        symlinked to {file}`~/.gemini/antigravity-cli/skills/`.
       '';
     };
   };
@@ -371,7 +388,7 @@ in
     let
       useGeminiConfig =
         cfg.useLegacyGeminiConfig || (cfg.package != null && lib.getName cfg.package == "gemini-cli");
-      antigravitySkillsDir = ".gemini/config/skills";
+      antigravitySkillsDir = ".gemini/antigravity-cli/skills";
       geminiSkillsDir = ".gemini/skills";
       antigravitySettings = lib.recursiveUpdate (lib.optionalAttrs (cfg.permissions != null) {
         inherit (cfg) permissions;
@@ -474,19 +491,6 @@ in
                   lib.hm.mcp.transformMcpServer {
                     inherit server;
                     extraTransforms = [
-                      (
-                        s:
-                        removeAttrs s [
-                          "httpUrl"
-                          "url"
-                        ]
-                        // lib.optionalAttrs (s ? httpUrl) {
-                          serverUrl = s.httpUrl;
-                        }
-                        // lib.optionalAttrs (s ? url) {
-                          serverUrl = s.url;
-                        }
-                      )
                       lib.hm.mcp.addType
                       (lib.hm.mcp.wrapEnvFilesCommand { inherit pkgs name; })
                       (s: lib.mapAttrs (_: lib.mkDefault) s)

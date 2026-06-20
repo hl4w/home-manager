@@ -16,7 +16,7 @@ or during a stable-release upgrade. See
 that affect stable-release upgrades.
 
 If you do have a change worthy of a news entry then please add one in
-[`news.nix`](https://github.com/nix-community/home-manager/blob/master/modules/misc/news.nix)
+[`news`](https://github.com/nix-community/home-manager/blob/master/modules/misc/news)
 but you should follow some basic guidelines:
 
 -   Use the included news entry generator to create a news entry file:
@@ -64,6 +64,10 @@ but you should follow some basic guidelines:
 
         A new module is available: 'services.foo'.
 
+    Since this news is specific to the module, its condition should use
+    the module enable option to avoid spamming non-users of the module,
+    for example `condition = config.services.foo.enable;`.
+
     If the module is platform specific, e.g., a service module using
     systemd, then a condition like
 
@@ -71,5 +75,7 @@ but you should follow some basic guidelines:
     condition = hostPlatform.isLinux;
     ```
 
-    should be added. Use the `create-news-entry` generator described
-    above to scaffold this entry as part of your contribution.
+    should be added, either by itself for platform-scoped news or in
+    combination with the module enable option. Use the `create-news-entry`
+    generator described above to scaffold this entry as part of your
+    contribution.

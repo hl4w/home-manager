@@ -60,7 +60,7 @@ let
   profilesWithId = lib.imap0 (i: v: v // { id = toString i; }) (attrValues cfg.profiles);
 
   profilesIni =
-    lib.foldl lib.recursiveUpdate
+    lib.foldl' lib.recursiveUpdate
       {
         General = {
           StartWithLastProfile = 1;
@@ -190,7 +190,7 @@ let
     };
 
   toThunderbirdAccount =
-    account: profile:
+    account:
     let
       inherit (account) id;
       addresses = [ account.address ] ++ account.aliases;
@@ -205,7 +205,6 @@ let
       "mail.accountmanager.defaultaccount" = "account_${id}";
     }
     // optionalAttrs (account.imap != null) {
-      "mail.server.server_${id}.directory" = "${thunderbirdProfilesPath}/${profile.name}/ImapMail/${id}";
       "mail.server.server_${id}.directory-rel" = "[ProfD]ImapMail/${id}";
       "mail.server.server_${id}.hostname" = account.imap.host;
       "mail.server.server_${id}.login_at_startup" = true;
@@ -245,7 +244,6 @@ let
       "mail.outgoingserver.ews_${id}.key" = "ews_${id}";
       "mail.outgoingserver.ews_${id}.username" = account.userName;
 
-      "mail.server.server_${id}.directory" = "${thunderbirdProfilesPath}/${profile.name}/Mail/${id}";
       "mail.server.server_${id}.directory-rel" = "[ProfD]Mail/${id}";
       "mail.server.server_${id}.hostname" = account.ews.host;
       "mail.server.server_${id}.ews_url" = account.ews.serviceDescriptionURL;
@@ -265,16 +263,14 @@ let
     // optionalAttrs (account.ews != null && account.ews.authentication != null) {
       "mail.server.server_${id}.authMethod" = toThunderbirdAuthMethod account.ews.authentication;
     }
-    // builtins.foldl' (a: b: a // b) { } (map (address: toThunderbirdSMTP account address) addresses)
+    // lib.mergeAttrsList (map (address: toThunderbirdSMTP account address) addresses)
     // optionalAttrs (account.smtp != null && account.primary) {
       "mail.smtp.defaultserver" = "smtp_${id}";
     }
     // optionalAttrs (account.smtp == null && account.ews != null && account.primary) {
       "mail.smtp.defaultserver" = "ews_${id}";
     }
-    // builtins.foldl' (a: b: a // b) { } (
-      map (address: toThunderbirdIdentity account address) addresses
-    )
+    // lib.mergeAttrsList (map (address: toThunderbirdIdentity account address) addresses)
     // account.thunderbird.settings id;
 
   toThunderbirdCalendar =
@@ -330,7 +326,7 @@ let
     );
 
   toThunderbirdFeed =
-    feed: profile:
+    feed:
     let
       inherit (feed) id;
     in
@@ -338,8 +334,6 @@ let
       "mail.account.account_${id}.server" = "server_${id}";
       "mail.server.server_${id}.name" = feed.name;
       "mail.server.server_${id}.type" = "rss";
-      "mail.server.server_${id}.directory" =
-        "${thunderbirdProfilesPath}/${profile.name}/Mail/Feeds-${id}";
       "mail.server.server_${id}.directory-rel" = "[ProfD]Mail/Feeds-${id}";
       "mail.server.server_${id}.hostname" = "Feeds-${id}";
     };
@@ -1180,7 +1174,7 @@ in
                 );
             in
             {
-              text = mkUserJs (builtins.foldl' (a: b: a // b) { } (
+              text = mkUserJs (lib.mergeAttrsList (
                 [
                   cfg.settings
 
@@ -1202,10 +1196,10 @@ in
 
                   profile.settings
                 ]
-                ++ (map (a: toThunderbirdAccount a profile) emailAccounts)
+                ++ (map toThunderbirdAccount emailAccounts)
                 ++ (map (calendar: toThunderbirdCalendar calendar profile) calendarAccounts)
                 ++ (map (contact: toThunderbirdContact contact profile) contactAccounts)
-                ++ (map (feed: toThunderbirdFeed feed profile) feedAccounts)
+                ++ (map toThunderbirdFeed feedAccounts)
               )) profile.extraConfig;
             };
 
