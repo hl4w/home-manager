@@ -5,63 +5,17 @@
   ...
 }:
 let
-  inherit (lib)
-    literalExpression
-    mkChangedOptionModule
-    mkOption
-    nameValuePair
-    optionalAttrs
-    ;
-
-  cfg = config.programs.claude-code;
+  inherit (lib) literalExpression mkOption;
 
   jsonFormat = pkgs.formats.json { };
 
-  upstreamConfigDir = "${config.home.homeDirectory}/.claude";
-
-  isMcpServerEnabled =
-    server:
-    let
-      enabled = server.enabled or null;
-      disabled = (server.disabled or false) == true;
-    in
-    enabled != false && !disabled;
-
-  transformMcpServer =
-    name: server:
-    lib.hm.mcp.transformMcpServer {
-      inherit server;
-      exclude = [ "enabled" ];
-      extraTransforms = [
-        lib.hm.mcp.addType
-        (lib.hm.mcp.wrapEnvFilesCommand { inherit pkgs name; }) # envFiles currently still need wrapping https://github.com/anthropics/claude-code/issues/28942
-      ];
-    };
-
-  # Shared MCP servers participate only when both integrations are enabled.
-  sharedMcpServers = lib.optionalAttrs (
-    cfg.enableMcpIntegration && config.programs.mcp.enable
-  ) config.programs.mcp.servers;
-
-  transformedMcpServers = lib.mapAttrs transformMcpServer sharedMcpServers;
-
-  disabledMcpServerNames = lib.attrNames (
-    lib.filterAttrs (_: server: !(isMcpServerEnabled server)) (sharedMcpServers // cfg.mcpServers)
-  );
-
   mkContentOption =
-    {
-      description,
-      example ? null,
-    }:
-    mkOption (
-      {
-        type = lib.types.attrsOf (lib.types.either lib.types.lines lib.types.path);
-        default = { };
-        inherit description;
-      }
-      // optionalAttrs (example != null) { inherit example; }
-    );
+    { description, example }:
+    mkOption {
+      type = lib.types.attrsOf (lib.types.either lib.types.lines lib.types.path);
+      default = { };
+      inherit description example;
+    };
 
   mkDirOption =
     { description, example }:
@@ -70,29 +24,8 @@ let
       default = null;
       inherit description example;
     };
-
 in
 {
-  meta.maintainers = [ lib.maintainers.khaneliman ];
-
-  imports = [
-    (mkChangedOptionModule
-      [ "programs" "claude-code" "memory" "text" ]
-      [ "programs" "claude-code" "context" ]
-      (config: lib.getAttrFromPath [ "programs" "claude-code" "memory" "text" ] config)
-    )
-    (mkChangedOptionModule
-      [ "programs" "claude-code" "memory" "source" ]
-      [ "programs" "claude-code" "context" ]
-      (config: lib.getAttrFromPath [ "programs" "claude-code" "memory" "source" ] config)
-    )
-    (mkChangedOptionModule
-      [ "programs" "claude-code" "skillsDir" ]
-      [ "programs" "claude-code" "skills" ]
-      (config: lib.getAttrFromPath [ "programs" "claude-code" "skillsDir" ] config)
-    )
-  ];
-
   options.programs.claude-code = {
     enable = lib.mkEnableOption "Claude Code, Anthropic's official CLI";
 
@@ -127,7 +60,7 @@ in
 
     configDir = mkOption {
       type = lib.types.str;
-      default = upstreamConfigDir;
+      default = "${config.home.homeDirectory}/.claude";
       defaultText = literalExpression ''"''${config.home.homeDirectory}/.claude"'';
       example = literalExpression ''"''${config.xdg.configHome}/claude"'';
       description = ''
@@ -222,12 +155,17 @@ in
         Each entry is either:
         - A path to the plugin directory
         - The plugin package, whether a nix package or the output of a fetcher
-        Plugins are enabled via a `--plugin-dir` argument in the wrapper script.
+        With Claude Code 2.1.157 or later, plugins are linked into
+        {option}`programs.claude-code.configDir` and loaded as personal plugins.
+        Versions 2.1.76 through 2.1.156 fall back to a legacy `--plugin-dir`
+        wrapper, as do packages without detectable version metadata.
+        Strict-parser subcommands such as {command}`claude rc` may reject
+        arguments from that compatibility path.
       '';
       example = literalExpression ''
         [
           ./my-local-plugin
-          fetchFromGithub {
+          fetchFromGitHub {
             owner = "some-github-org";
             repo = "claude-plugin";
             rev = "779a68ebc2a75e4a184d2c87e5a43a758e6458a1";
@@ -249,7 +187,7 @@ in
       example = literalExpression ''
         {
           local-marketplace = ./my-local-marketplace;
-          gh-marketplace = fetchFromGithub {
+          gh-marketplace = fetchFromGitHub {
             owner = "some-github-org";
             repo = "claude-marketplace";
             rev = "8a873a220b8427b25b03ce1a821593a24e098c34";
@@ -440,13 +378,7 @@ in
     };
 
     skills = mkOption {
-      type = lib.types.either (lib.types.attrsOf (
-        lib.types.oneOf [
-          lib.types.lines
-          lib.types.path
-          lib.types.str
-        ]
-      )) lib.types.path;
+      type = with lib.types; either (attrsOf (either lines path)) path;
       default = { };
       description = ''
         Custom skills for Claude Code.
@@ -566,201 +498,4 @@ in
       };
     };
   };
-
-  config =
-    let
-      mkSourceEntry = content: if lib.isPath content then { source = content; } else { text = content; };
-
-      mkMarkdownEntries =
-        subdir: attrs:
-        lib.mapAttrs' (
-          name: content: nameValuePair "${cfg.configDir}/${subdir}/${name}.md" (mkSourceEntry content)
-        ) attrs;
-
-      mkHookEntries =
-        attrs:
-        lib.mapAttrs' (
-          name: content:
-          nameValuePair "${cfg.configDir}/hooks/${name}" {
-            text = content;
-            executable = true;
-          }
-        ) attrs;
-
-      mkRecursiveDirAttrs =
-        subdir: dir:
-        optionalAttrs (dir != null) {
-          "${cfg.configDir}/${subdir}" = {
-            source = dir;
-            recursive = true;
-          };
-        };
-
-      mkSkillEntry =
-        name: content:
-        if lib.hm.strings.isPathLike content && lib.pathIsDirectory content then
-          nameValuePair "${cfg.configDir}/skills/${name}" {
-            source = content;
-            recursive = true;
-          }
-        else
-          nameValuePair "${cfg.configDir}/skills/${name}/SKILL.md" (
-            if lib.hm.strings.isPathLike content then { source = content; } else { text = content; }
-          );
-
-      mkMarketplaceEntry = _name: content: {
-        source = {
-          source = "directory";
-          path = content;
-        };
-      };
-
-      mkInstalledMarketplaceEntry =
-        name: content:
-        (mkMarketplaceEntry name content)
-        // {
-          installLocation = content;
-          lastUpdated = "1970-01-01T00:00:00Z";
-        };
-
-    in
-    lib.mkIf cfg.enable {
-      assertions =
-        let
-          exclusiveInlineDirNames = [
-            "rules"
-            "agents"
-            "commands"
-            "hooks"
-          ];
-
-          mkExclusiveAssertion = inline: {
-            assertion = !(cfg.${inline} != { } && cfg.${inline + "Dir"} != null);
-            message = "Cannot specify both `programs.claude-code.${inline}` and `programs.claude-code.${inline}Dir`";
-          };
-        in
-        [
-          {
-            assertion =
-              (cfg.mcpServers == { } && cfg.lspServers == { } && !cfg.enableMcpIntegration && cfg.plugins == [ ])
-              || cfg.package != null;
-            message = "`programs.claude-code.package` cannot be null when `mcpServers`, `lspServers`, `enableMcpIntegration`, or `plugins` is configured";
-          }
-          {
-            assertion = !lib.hm.strings.isPathLike cfg.skills || lib.pathIsDirectory cfg.skills;
-            message = "`programs.claude-code.skills` must be a directory when set to a path";
-          }
-        ]
-        ++ map mkExclusiveAssertion exclusiveInlineDirNames;
-
-      programs.claude-code.finalPackage =
-        let
-          mergedMcpServers =
-            transformedMcpServers
-            // lib.mapAttrs (_: server: removeAttrs (lib.hm.mcp.addType server) [ "enabled" ]) cfg.mcpServers;
-          pluginFiles =
-            lib.optional (mergedMcpServers != { }) {
-              name = ".mcp.json";
-              path = jsonFormat.generate "claude-code-mcp.json" { mcpServers = mergedMcpServers; };
-            }
-            ++ lib.optional (cfg.lspServers != { }) {
-              name = ".lsp.json";
-              path = jsonFormat.generate "claude-code-lsp.json" cfg.lspServers;
-            };
-          pluginDir = pkgs.runCommand "claude-code-hm-plugin" { } (
-            ''
-              install -Dm644 ${
-                jsonFormat.generate "claude-code-plugin.json" {
-                  name = "claude-code-home-manager";
-                }
-              } $out/.claude-plugin/plugin.json
-            ''
-            + lib.concatLines (
-              map (pluginFile: "install -Dm644 ${pluginFile.path} $out/${pluginFile.name}") pluginFiles
-            )
-          );
-          allPluginPaths = (if pluginFiles != [ ] then [ pluginDir ] else [ ]) ++ cfg.plugins;
-          wrapperArgs = lib.flatten (
-            map (p: [
-              "--plugin-dir"
-              "${p}"
-            ]) allPluginPaths
-          );
-        in
-        if allPluginPaths != [ ] then
-          pkgs.symlinkJoin {
-            name = "claude-code";
-            paths = [ cfg.package ];
-            postBuild = ''
-              mv $out/bin/claude $out/bin/.claude-wrapped
-              cat > $out/bin/claude <<EOF
-              #! ${pkgs.bash}/bin/bash -e
-              exec -a "\$0" "$out/bin/.claude-wrapped" ${lib.escapeShellArgs wrapperArgs} "\$@"
-              EOF
-              chmod +x $out/bin/claude
-            '';
-            inherit (cfg.package) meta;
-          }
-        else
-          cfg.package;
-
-      home = {
-        packages = lib.mkIf (cfg.package != null) [ cfg.finalPackage ];
-
-        sessionVariables = lib.mkIf (cfg.configDir != upstreamConfigDir) {
-          CLAUDE_CONFIG_DIR = cfg.configDir;
-        };
-
-        file = lib.mkMerge [
-          (lib.mkIf (cfg.settings != { } || cfg.marketplaces != { } || disabledMcpServerNames != [ ]) {
-            "${cfg.configDir}/settings.json".source = jsonFormat.generate "claude-code-settings.json" (
-              cfg.settings
-              // {
-                "$schema" = "https://json.schemastore.org/claude-code-settings.json";
-              }
-              // optionalAttrs (cfg.marketplaces != { }) {
-                extraKnownMarketplaces = lib.mapAttrs mkMarketplaceEntry cfg.marketplaces;
-              }
-              // optionalAttrs (disabledMcpServerNames != [ ]) {
-                disabledMcpjsonServers = lib.unique (
-                  (cfg.settings.disabledMcpjsonServers or [ ]) ++ disabledMcpServerNames
-                );
-              }
-            );
-          })
-          (
-            if lib.isPath cfg.context then
-              {
-                "${cfg.configDir}/CLAUDE.md".source = cfg.context;
-              }
-            else
-              (lib.mkIf (cfg.context != "") {
-                "${cfg.configDir}/CLAUDE.md".text = cfg.context;
-              })
-          )
-          (lib.mkIf (cfg.marketplaces != { }) {
-            "${cfg.configDir}/plugins/known_marketplaces.json".source =
-              jsonFormat.generate "claude-code-known-marketplaces.json" (
-                lib.mapAttrs mkInstalledMarketplaceEntry cfg.marketplaces
-              );
-          })
-          (mkMarkdownEntries "agents" cfg.agents)
-          (mkMarkdownEntries "commands" cfg.commands)
-          (mkMarkdownEntries "rules" cfg.rules)
-          (mkRecursiveDirAttrs "agents" cfg.agentsDir)
-          (mkRecursiveDirAttrs "commands" cfg.commandsDir)
-          (mkRecursiveDirAttrs "hooks" cfg.hooksDir)
-          (mkRecursiveDirAttrs "rules" cfg.rulesDir)
-          (lib.mkIf (lib.hm.strings.isPathLike cfg.skills) {
-            "${cfg.configDir}/skills" = {
-              source = cfg.skills;
-              recursive = true;
-            };
-          })
-          (mkHookEntries cfg.hooks)
-          (lib.optionalAttrs (builtins.isAttrs cfg.skills) (lib.mapAttrs' mkSkillEntry cfg.skills))
-          (mkMarkdownEntries "output-styles" cfg.outputStyles)
-        ];
-      };
-    };
 }

@@ -517,6 +517,12 @@
       }
     ];
   };
+  reesilva = {
+    name = "Renato da Silva";
+    email = "reesilva@proton.me";
+    github = "ReeSilva";
+    githubId = 3605032;
+  };
   rosuavio = {
     name = "Rosario Pulella";
     email = "RosarioPulella@gmail.com";
@@ -563,12 +569,6 @@
     email = "will.bradshaw50@gmail.com";
     github = "will-lol";
     githubId = 65345408;
-  };
-  yarn = {
-    name = "yarncat";
-    email = "30006414+yaaaarn@users.noreply.github.com";
-    github = "yaaaarn";
-    githubId = 30006414;
   };
   zorrobert = {
     name = "zorrobert";
