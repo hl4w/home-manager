@@ -66,7 +66,7 @@ let
         preferLocalBuild = true;
         nativeBuildInputs = [ pkgs.makeWrapper ];
         postBuild = ''
-          wrapProgram $out/bin/opencode \
+          wrapProgram $out/bin/${cfg.package.meta.mainProgram} \
             --suffix PATH : ${lib.makeBinPath cfg.extraPackages}
         '';
       }
@@ -123,6 +123,11 @@ in
         `lib.hm.dag.entryAfter` values are rendered in topological order, with
         raw sibling values treated as unordered entries. This is useful for
         OpenCode permission rules, where the last matching rule wins.
+
+        The `plugin` key accepts a list of plugin references: local paths to
+        plugin directories or files, derivations (e.g. `fetchFromGitHub`),
+        string paths into derivations, or names of external plugins fetched and
+        built by OpenCode.
 
         Note, `"$schema": "https://opencode.ai/config.json"` is automatically added to the configuration.
       '';
@@ -626,7 +631,6 @@ in
     launchd.agents = mkIf webCfg.enable {
       opencode-web = {
         enable = true;
-        domain = lib.mkDefault "user";
         config = {
           ProgramArguments =
             let
