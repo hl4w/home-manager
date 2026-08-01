@@ -103,12 +103,6 @@
     github = "CarlosLoboxyz";
     githubId = 86011416;
   };
-  ckgxrg = {
-    name = "ckgxrg";
-    email = "ckgxrg@ckgxrg.io";
-    github = "ckgxrg-salt";
-    githubId = 165614491;
-  };
   csanthiago = {
     name = "csanthiago";
     email = "git@csanthiago.dev";
@@ -227,6 +221,11 @@
     email = "gauthsvenkat+home-manager@gmail.com";
     github = "gauthsvenkat";
     githubId = 26820345;
+  };
+  glmlm = {
+    email = "91877885+glmlm@users.noreply.github.com";
+    github = "glmlm";
+    githubId = 91877885;
   };
   henrisota = {
     email = "henrisota@users.noreply.github.com";
@@ -528,12 +527,6 @@
     email = "RosarioPulella@gmail.com";
     github = "Rosuavio";
     githubId = 7164552;
-  };
-  rsahwe = {
-    name = "rsahwe";
-    email = "rsahwe@gmx.net";
-    github = "rsahwe";
-    githubId = 201613730;
   };
   rszamszur = {
     name = "Radosław Szamszur";
