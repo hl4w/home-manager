@@ -498,6 +498,13 @@
     github = "prescientmoon";
     githubId = 39400800;
   };
+  rachitvrma = {
+    name = "Rachit Kumar Verma";
+    email = "155641117+rachitvrma@users.noreply.github.com";
+    matrix = "@rachitvrma:matrix.org";
+    github = "rachitvrma";
+    githubId = 155641117;
+  };
   rasmus-kirk = {
     name = "Rasmus Kirk";
     email = "mail@rasmuskirk.com";
@@ -556,6 +563,12 @@
     email = "saymon.nicho@pucp.edu.pe";
     github = "superflash41";
     githubId = 102434258;
+  };
+  vidhanio = {
+    name = "Vidhan Bhatt";
+    email = "me@vidhan.io";
+    github = "vidhanio";
+    githubId = 41439633;
   };
   will-lol = {
     name = "William Bradshaw";

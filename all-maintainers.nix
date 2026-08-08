@@ -313,6 +313,21 @@
     name = "Michael Forster";
     source = "home-manager";
   };
+  Malix-Labs = {
+    email = "alixbrunetcontact+nixpkgs@gmail.com";
+    github = "Malix-Labs";
+    githubId = 76160668;
+    keys = [
+      {
+        fingerprint = "cgtiI0dV+OGTuIFFuuCPWZPgF5OaiSkmZzobIdoWQO0";
+      }
+      {
+        fingerprint = "369E2AB995539B6F30AAC24C600394C79ED874E5";
+      }
+    ];
+    name = "Malix - Alix Brunet";
+    source = "nixpkgs";
+  };
   Misterio77 = {
     email = "eu@misterio.me";
     github = "Misterio77";
@@ -2084,6 +2099,12 @@
     name = "prescientmoon";
     source = "home-manager";
   };
+  rachitvrma = {
+    github = "rachitvrma";
+    githubId = 155641117;
+    name = "Rachit Kumar Verma";
+    source = "home-manager";
+  };
   rasmus-kirk = {
     email = "mail@rasmuskirk.com";
     github = "rasmus-kirk";
@@ -2447,6 +2468,13 @@
     ];
     name = "Vincent Haupert";
     source = "nixpkgs";
+  };
+  vidhanio = {
+    email = "me@vidhan.io";
+    github = "vidhanio";
+    githubId = 41439633;
+    name = "Vidhan Bhatt";
+    source = "home-manager";
   };
   vonixxx = {
     email = "vonixxx@tuta.io";
